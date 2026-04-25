@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Lector OCR de Tape - Reparaciones</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 1rem;
+            background: #f4f7fc;
+        }
+        .card {
+            background: white;
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+        }
+        h1 {
+            font-size: 1.6rem;
+            margin-top: 0;
+            color: #1e3c5c;
+        }
+        label {
+            font-weight: 600;
+            display: block;
+            margin-top: 1rem;
+        }
+        input, textarea, button {
+            width: 100%;
+            padding: 0.75rem;
+            margin-top: 0.3rem;
+            border: 1px solid #ccc;
+            border-radius: 0.8rem;
+            font-size: 1rem;
+        }
+        button {
+            background-color: #2c7da0;
+            color: white;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 1rem;
+        }
+        button:hover {
+            background-color: #1f5068;
+        }
+        .flex-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .flex-row > div {
+            flex: 1;
+            min-width: 120px;
+        }
+        img, canvas {
+            max-width: 100%;
+            border-radius: 1rem;
+            margin-top: 0.5rem;
+            border: 1px solid #ddd;
+        }
+        .ocr-text {
+            font-family: monospace;
+            background: #f0f0f0;
+        }
+        .status {
+            background: #e9ecef;
+            border-radius: 1rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+        .field-group {
+            background: #f8f9fa;
+            border-radius: 1rem;
+            padding: 0.8rem;
+            margin-top: 1rem;
+        }
+        .success {
+            border-left: 5px solid #2ecc71;
+            background: #eaffea;
+        }
+        .error {
+            border-left: 5px solid #e74c3c;
+            background: #ffe6e5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h1>📸 Lee Tape de reparación (manuscrito)</h1>
+    <p>Formato esperado: <code>D13.L23.N2.RR450x200.s</code><br>
+    <strong>D</strong>=Drop, <strong>L</strong>=Level, <strong>N</strong>=Número reparación, <strong>RR</strong>=Repair type, <strong>450x200</strong>=Measurements, <strong>s</strong>=Phase</p>
+
+    <label>📷 1. Tomar foto o subir imagen:</label>
+    <input type="file" id="imageInput" accept="image/*" capture="environment">
+    <div style="margin-top: 0.5rem;">
+        <canvas id="previewCanvas" style="max-width:100%; display:none;"></canvas>
+        <img id="previewImg" style="max-width:100%; display:none;">
+    </div>
+
+    <button id="ocrBtn">🔍 Extraer texto con OCR</button>
+
+    <div id="status" class="status" style="margin-top: 1rem;">⏳ Esperando imagen...</div>
+
+    <label>📝 Texto reconocido (puedes editarlo si el OCR falló):</label>
+    <textarea id="rawText" rows="2" placeholder="El texto aparecerá aquí..."></textarea>
+    <button id="parseBtn">📌 Parsear y rellenar campos</button>
+</div>
+
+<div class="card">
+    <h2>📋 Datos extraídos</h2>
+    <div class="flex-row">
+        <div><label>Drop (D)</label><input id="drop" placeholder="ej: 13" readonly></div>
+        <div><label>Level (L)</label><input id="level" placeholder="ej: 23" readonly></div>
+        <div><label>Nº reparación</label><input id="repairNumber" placeholder="ej: 2" readonly></div>
+    </div>
+    <div class="flex-row">
+        <div><label>Tipo repair</label><input id="repairType" placeholder="ej: RR" readonly></div>
+        <div><label>Medidas</label><input id="measurements" placeholder="ej: 450x200" readonly></div>
+        <div><label>Fase</label><input id="phase" placeholder="ej: s" readonly></div>
+    </div>
+    <div class="field-group" id="parsedFeedback"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+    // Variables DOM
+    const imageInput = document.getElementById('imageInput');
+    const previewCanvas = document.getElementById('previewCanvas');
+    const previewImg = document.getElementById('previewImg');
+    const ocrBtn = document.getElementById('ocrBtn');
+    const rawTextarea = document.getElementById('rawText');
+    const parseBtn = document.getElementById('parseBtn');
+    const statusDiv = document.getElementById('status');
+    
+    // Campos de salida
+    const dropInput = document.getElementById('drop');
+    const levelInput = document.getElementById('level');
+    const repairNumberInput = document.getElementById('repairNumber');
+    const repairTypeInput = document.getElementById('repairType');
+    const measurementsInput = document.getElementById('measurements');
+    const phaseInput = document.getElementById('phase');
+    const parsedFeedback = document.getElementById('parsedFeedback');
+
+    let currentImageData = null; // para almacenar imagen base64 si necesario
+
+    // Previsualizar imagen al seleccionar archivo
+    imageInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const url = URL.createObjectURL(file);
+        previewImg.src = url;
+        previewImg.style.display = 'block';
+        previewCanvas.style.display = 'none';
+        
+        // Limpiar ocr anterior
+        rawTextarea.value = '';
+        clearFields();
+        statusDiv.innerHTML = '📸 Imagen cargada. Presiona "Extraer texto con OCR".';
+        
+        // Guardar referencia para OCR (se usará el blob directamente)
+        currentImageData = file;
+    });
+
+    // Función para limpiar campos
+    function clearFields() {
+        dropInput.value = '';
+        levelInput.value = '';
+        repairNumberInput.value = '';
+        repairTypeInput.value = '';
+        measurementsInput.value = '';
+        phaseInput.value = '';
+        parsedFeedback.innerHTML = '';
+        parsedFeedback.className = 'field-group';
+    }
+
+    // Mostrar resultado parseado con estilo
+    function showParsedResult(data, errorMsg = null) {
+        if (errorMsg || !data) {
+            parsedFeedback.innerHTML = `<span style="color:#c0392b;">❌ Error: ${errorMsg || 'No se pudo parsear el texto'}</span>`;
+            parsedFeedback.className = 'field-group error';
+            return;
+        }
+        dropInput.value = data.drop;
+        levelInput.value = data.level;
+        repairNumberInput.value = data.repairNumber;
+        repairTypeInput.value = data.repairType;
+        measurementsInput.value = data.measurements;
+        phaseInput.value = data.phase;
+        parsedFeedback.innerHTML = `✅ Extracción exitosa: <strong>D${data.drop}.L${data.level}.N${data.repairNumber}.${data.repairType}${data.measurements}.${data.phase}</strong>`;
+        parsedFeedback.className = 'field-group success';
+    }
+
+    // Función de parseo del formato exacto
+    function parseRepairLabel(text) {
+        // Limpiar espacios, saltos de línea, y asegurar mayúsculas en letras (pero fase puede ser minúscula)
+        let cleaned = text.trim().replace(/\s+/g, '');
+        // Expresión regular exacta: D(dígitos).L(dígitos).N(dígitos).(letras)(dígitos x dígitos).(letras minúsculas o mayúsculas)
+        const regex = /^D(\d+)\.L(\d+)\.N(\d+)\.([A-Za-z]+)(\d+x\d+)\.([A-Za-z]+)$/i;
+        const match = cleaned.match(regex);
+        if (!match) {
+            // Intento más permisivo: si el OCR agregó caracteres extraños, buscar patrón dentro
+            const fallbackRegex = /D(\d+)\.L(\d+)\.N(\d+)\.([A-Za-z]+)(\d+x\d+)\.([A-Za-z]+)/i;
+            const fallbackMatch = cleaned.match(fallbackRegex);
+            if (fallbackMatch) {
+                const [, drop, level, repairNumber, repairType, measurements, phase] = fallbackMatch;
+                return { drop, level, repairNumber, repairType, measurements, phase };
+            }
+            return null;
+        }
+        const [, drop, level, repairNumber, repairType, measurements, phase] = match;
+        return { drop, level, repairNumber, repairType, measurements, phase };
+    }
+
+    // Ejecutar OCR con Tesseract
+    async function runOCR(imageFile) {
+        if (!imageFile) {
+            statusDiv.innerHTML = '⚠️ Primero selecciona o toma una foto.';
+            return false;
+        }
+        statusDiv.innerHTML = '🔄 Procesando OCR... (puede tomar varios segundos)';
+        try {
+            // Usamos Tesseract con idioma inglés (entrenado para imprenta, pero puede reconocer manuscrito simple)
+            // Para mejorar manuscrito se podría usar 'eng+spa' o modelos específicos, pero el peso es mayor.
+            const worker = await Tesseract.createWorker('eng', 1, {
+                logger: m => console.log(m) // opcional para depuración
+            });
+            // Realizar reconocimiento desde el archivo
+            const { data: { text } } = await worker.recognize(imageFile);
+            await worker.terminate();
+            
+            const recognized = text.trim();
+            rawTextarea.value = recognized;
+            statusDiv.innerHTML = '✅ OCR completado. Revisa el texto reconocido y presiona "Parsear".';
+            
+            // Opcional: automáticamente intentar parsear si el texto tiene buena pinta
+            if (recognized.length > 5) {
+                const parsed = parseRepairLabel(recognized);
+                if (parsed) {
+                    showParsedResult(parsed);
+                    statusDiv.innerHTML = '🎯 Parseo automático exitoso. Campos rellenados.';
+                } else {
+                    statusDiv.innerHTML = '⚠️ El texto reconocido no coincide con el formato. Edítalo manualmente y parsea.';
+                }
+            }
+            return true;
+        } catch (error) {
+            console.error(error);
+            statusDiv.innerHTML = `❌ Error en OCR: ${error.message}`;
+            return false;
+        }
+    }
+
+    // Manejar botón OCR
+    ocrBtn.addEventListener('click', async () => {
+        clearFields();
+        if (!currentImageData && imageInput.files.length === 0) {
+            statusDiv.innerHTML = '📁 Por favor, selecciona una imagen primero.';
+            return;
+        }
+        const file = currentImageData || imageInput.files[0];
+        await runOCR(file);
+    });
+
+    // Botón parsear manual (usa el texto del textarea)
+    parseBtn.addEventListener('click', () => {
+        const rawText = rawTextarea.value;
+        if (!rawText.trim()) {
+            parsedFeedback.innerHTML = '<span style="color:#e67e22;">✏️ No hay texto para parsear. Ejecuta OCR o escribe manualmente.</span>';
+            parsedFeedback.className = 'field-group error';
+            return;
+        }
+        const parsed = parseRepairLabel(rawText);
+        if (parsed) {
+            showParsedResult(parsed);
+            statusDiv.innerHTML = '📌 Parseo manual exitoso.';
+        } else {
+            showParsedResult(null, 'Formato no válido. Debe ser algo como D13.L23.N2.RR450x200.s');
+        }
+    });
+
+    // Pequeña ayuda: Si el usuario pega un texto en el área, intentar parseo automático al salir (opcional)
+    rawTextarea.addEventListener('blur', () => {
+        const text = rawTextarea.value;
+        if (text.trim()) {
+            const parsed = parseRepairLabel(text);
+            if (parsed) showParsedResult(parsed);
+        }
+    });
+</script>
+</body>
+</html>
