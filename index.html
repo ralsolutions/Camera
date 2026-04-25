@@ -3,146 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Lector OCR de Tape - Reparaciones</title>
+    <title>OCR Tape Reparaciones – Manuscrito avanzado</title>
     <style>
         * {
             box-sizing: border-box;
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            font-family: system-ui, 'Segoe UI', 'Roboto', sans-serif;
         }
         body {
-            max-width: 800px;
-            margin: 2rem auto;
+            max-width: 1000px;
+            margin: 1rem auto;
             padding: 1rem;
-            background: #f4f7fc;
+            background: #eef2f5;
         }
         .card {
             background: white;
             border-radius: 1.5rem;
-            padding: 1.5rem;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            padding: 1.2rem;
             margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         h1 {
             font-size: 1.6rem;
-            margin-top: 0;
-            color: #1e3c5c;
+            margin: 0 0 0.5rem 0;
+            color: #1e4663;
+        }
+        h2 {
+            font-size: 1.2rem;
+            margin: 0.5rem 0;
+            color: #2c3e66;
+        }
+        button {
+            background: #2c7da0;
+            color: white;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 0.5rem 0.2rem;
+            transition: 0.2s;
+        }
+        button.secondary {
+            background: #6c757d;
+        }
+        button.primary {
+            background: #1f6392;
+        }
+        button:hover {
+            filter: brightness(0.9);
+        }
+        .flex-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-end;
+        }
+        .flex-col {
+            flex: 1;
+            min-width: 150px;
         }
         label {
             font-weight: 600;
             display: block;
-            margin-top: 1rem;
+            margin-top: 0.8rem;
+            margin-bottom: 0.2rem;
         }
-        input, textarea, button {
+        input, textarea, select {
             width: 100%;
-            padding: 0.75rem;
-            margin-top: 0.3rem;
-            border: 1px solid #ccc;
+            padding: 0.5rem;
             border-radius: 0.8rem;
-            font-size: 1rem;
+            border: 1px solid #aaa;
+            font-size: 0.9rem;
         }
-        button {
-            background-color: #2c7da0;
-            color: white;
-            font-weight: bold;
-            border: none;
-            cursor: pointer;
-            transition: 0.2s;
-            margin-top: 1rem;
-        }
-        button:hover {
-            background-color: #1f5068;
-        }
-        .flex-row {
+        .preview-area {
             display: flex;
-            gap: 1rem;
             flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
         }
-        .flex-row > div {
-            flex: 1;
-            min-width: 120px;
-        }
-        img, canvas {
-            max-width: 100%;
+        .preview-box {
+            background: #f8f9fc;
             border-radius: 1rem;
-            margin-top: 0.5rem;
-            border: 1px solid #ddd;
+            padding: 0.8rem;
+            text-align: center;
+            flex: 1;
+            min-width: 250px;
         }
-        .ocr-text {
-            font-family: monospace;
-            background: #f0f0f0;
+        canvas, img {
+            max-width: 100%;
+            border-radius: 0.8rem;
+            border: 1px solid #ccc;
+            background: #eee;
         }
         .status {
             background: #e9ecef;
             border-radius: 1rem;
-            padding: 0.5rem 1rem;
-            font-size: 0.9rem;
+            padding: 0.6rem 1rem;
+            font-size: 0.85rem;
+            margin: 0.8rem 0;
         }
         .field-group {
-            background: #f8f9fa;
+            background: #f1f3f5;
             border-radius: 1rem;
             padding: 0.8rem;
             margin-top: 1rem;
         }
         .success {
-            border-left: 5px solid #2ecc71;
-            background: #eaffea;
+            background: #d4edda;
+            border-left: 6px solid #2ecc71;
         }
         .error {
-            border-left: 5px solid #e74c3c;
-            background: #ffe6e5;
+            background: #f8d7da;
+            border-left: 6px solid #e74c3c;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+        }
+        hr {
+            margin: 1rem 0;
+        }
+        @media (max-width: 700px) {
+            .flex-row { flex-direction: column; }
         }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>📸 Lee Tape de reparación (manuscrito)</h1>
-    <p>Formato esperado: <code>D13.L23.N2.RR450x200.s</code><br>
-    <strong>D</strong>=Drop, <strong>L</strong>=Level, <strong>N</strong>=Número reparación, <strong>RR</strong>=Repair type, <strong>450x200</strong>=Measurements, <strong>s</strong>=Phase</p>
-
-    <label>📷 1. Tomar foto o subir imagen:</label>
-    <input type="file" id="imageInput" accept="image/*" capture="environment">
-    <div style="margin-top: 0.5rem;">
-        <canvas id="previewCanvas" style="max-width:100%; display:none;"></canvas>
-        <img id="previewImg" style="max-width:100%; display:none;">
-    </div>
-
-    <button id="ocrBtn">🔍 Extraer texto con OCR</button>
-
-    <div id="status" class="status" style="margin-top: 1rem;">⏳ Esperando imagen...</div>
-
-    <label>📝 Texto reconocido (puedes editarlo si el OCR falló):</label>
-    <textarea id="rawText" rows="2" placeholder="El texto aparecerá aquí..."></textarea>
-    <button id="parseBtn">📌 Parsear y rellenar campos</button>
+    <h1>📄 Lector de Tape manuscrito (OCR + preprocesado)</h1>
+    <p>Formato esperado: <code><strong>D13.L23.N2.RR450x200.s</strong></code><br>
+    <strong>D</strong> (Drop) , <strong>L</strong> (Level) , <strong>N</strong> (Número reparación), <strong>RR</strong> (tipo), <strong>450x200</strong> (medidas), <strong>s</strong> (fase)</p>
+    <p>✍️ Consejos: escribe con letra <strong>mayúscula de imprenta</strong>, buena iluminación, fondo contrastado. Usa el recorte y ajustes de umbral.</p>
 </div>
 
 <div class="card">
-    <h2>📋 Datos extraídos</h2>
+    <label>📸 1. Sube o toma foto</label>
+    <input type="file" id="imageInput" accept="image/*" capture="environment">
+    
+    <div class="preview-area">
+        <div class="preview-box">
+            <strong>Original</strong><br>
+            <img id="originalImg" style="max-width:100%; max-height:250px; display:none;">
+            <canvas id="previewCanvas" style="max-width:100%; max-height:250px; display:none;"></canvas>
+        </div>
+        <div class="preview-box">
+            <strong>Previsualización (recorte y ajustes)</strong><br>
+            <canvas id="processedCanvas" width="400" height="200" style="max-width:100%; background:#ddd;"></canvas>
+            <div style="margin-top:0.5rem;">
+                <button id="cropBtn" class="secondary">✂️ Activar recorte (arrastra sobre imagen original)</button>
+                <button id="resetCropBtn" class="secondary">⟳ Reset recorte</button>
+            </div>
+        </div>
+    </div>
+
+    <label>🎛️ Ajustes de preprocesado (experimental)</label>
     <div class="flex-row">
-        <div><label>Drop (D)</label><input id="drop" placeholder="ej: 13" readonly></div>
-        <div><label>Level (L)</label><input id="level" placeholder="ej: 23" readonly></div>
-        <div><label>Nº reparación</label><input id="repairNumber" placeholder="ej: 2" readonly></div>
+        <div class="flex-col">
+            <div class="slider-label"><span>Umbral binario (0-255)</span><span id="thresholdVal">180</span></div>
+            <input type="range" id="thresholdSlider" min="0" max="255" value="180" step="5">
+            <small>Más bajo = más negro, más alto = más blanco</small>
+        </div>
+        <div class="flex-col">
+            <div class="slider-label"><span>Contraste (factor)</span><span id="contrastVal">1.3</span></div>
+            <input type="range" id="contrastSlider" min="0.5" max="2.5" value="1.3" step="0.05">
+        </div>
+    </div>
+    
+    <button id="applyPreprocessBtn">🖌️ Aplicar preprocesado y actualizar vista</button>
+    <button id="ocrBtn" class="primary">🔍 Ejecutar OCR (sobre la imagen procesada)</button>
+    
+    <div id="status" class="status">⏳ Esperando imagen...</div>
+</div>
+
+<div class="card">
+    <label>📝 Texto reconocido (editable)</label>
+    <textarea id="rawText" rows="2" placeholder="El texto aparecerá aquí. Si falla, corrígelo manualmente."></textarea>
+    <button id="parseBtn">📌 Parsear y rellenar campos</button>
+
+    <h2>📋 Campos extraídos</h2>
+    <div class="flex-row">
+        <div class="flex-col"><label>Drop (D)</label><input id="drop" placeholder="ej: 13" readonly></div>
+        <div class="flex-col"><label>Level (L)</label><input id="level" placeholder="ej: 23" readonly></div>
+        <div class="flex-col"><label>Nº reparación</label><input id="repairNumber" placeholder="ej: 2" readonly></div>
     </div>
     <div class="flex-row">
-        <div><label>Tipo repair</label><input id="repairType" placeholder="ej: RR" readonly></div>
-        <div><label>Medidas</label><input id="measurements" placeholder="ej: 450x200" readonly></div>
-        <div><label>Fase</label><input id="phase" placeholder="ej: s" readonly></div>
+        <div class="flex-col"><label>Tipo repair</label><input id="repairType" placeholder="ej: RR" readonly></div>
+        <div class="flex-col"><label>Medidas</label><input id="measurements" placeholder="ej: 450x200" readonly></div>
+        <div class="flex-col"><label>Fase</label><input id="phase" placeholder="ej: s" readonly></div>
     </div>
-    <div class="field-group" id="parsedFeedback"></div>
+    <div id="parsedFeedback"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
-    // Variables DOM
+    // Elementos DOM
     const imageInput = document.getElementById('imageInput');
+    const originalImg = document.getElementById('originalImg');
     const previewCanvas = document.getElementById('previewCanvas');
-    const previewImg = document.getElementById('previewImg');
+    const processedCanvas = document.getElementById('processedCanvas');
+    const ctxProcessed = processedCanvas.getContext('2d');
+    
+    const thresholdSlider = document.getElementById('thresholdSlider');
+    const thresholdVal = document.getElementById('thresholdVal');
+    const contrastSlider = document.getElementById('contrastSlider');
+    const contrastVal = document.getElementById('contrastVal');
+    const applyPreprocessBtn = document.getElementById('applyPreprocessBtn');
     const ocrBtn = document.getElementById('ocrBtn');
     const rawTextarea = document.getElementById('rawText');
     const parseBtn = document.getElementById('parseBtn');
     const statusDiv = document.getElementById('status');
+    const cropBtn = document.getElementById('cropBtn');
+    const resetCropBtn = document.getElementById('resetCropBtn');
     
-    // Campos de salida
+    // Campos output
     const dropInput = document.getElementById('drop');
     const levelInput = document.getElementById('level');
     const repairNumberInput = document.getElementById('repairNumber');
@@ -150,29 +224,15 @@
     const measurementsInput = document.getElementById('measurements');
     const phaseInput = document.getElementById('phase');
     const parsedFeedback = document.getElementById('parsedFeedback');
-
-    let currentImageData = null; // para almacenar imagen base64 si necesario
-
-    // Previsualizar imagen al seleccionar archivo
-    imageInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const url = URL.createObjectURL(file);
-        previewImg.src = url;
-        previewImg.style.display = 'block';
-        previewCanvas.style.display = 'none';
-        
-        // Limpiar ocr anterior
-        rawTextarea.value = '';
-        clearFields();
-        statusDiv.innerHTML = '📸 Imagen cargada. Presiona "Extraer texto con OCR".';
-        
-        // Guardar referencia para OCR (se usará el blob directamente)
-        currentImageData = file;
-    });
-
-    // Función para limpiar campos
+    
+    // Variables de estado
+    let originalImageFile = null;
+    let originalImageBitmap = null;
+    let cropRect = null; // {x, y, w, h} en coordenadas relativas al canvas original (0..1)
+    let isCropping = false;
+    let startCrop = { x: 0, y: 0 };
+    
+    // --- Helper: limpiar campos ---
     function clearFields() {
         dropInput.value = '';
         levelInput.value = '';
@@ -181,13 +241,253 @@
         measurementsInput.value = '';
         phaseInput.value = '';
         parsedFeedback.innerHTML = '';
-        parsedFeedback.className = 'field-group';
+        parsedFeedback.className = '';
     }
-
-    // Mostrar resultado parseado con estilo
+    
+    // --- Cargar imagen ---
+    imageInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        originalImageFile = file;
+        const url = URL.createObjectURL(file);
+        originalImg.src = url;
+        originalImg.style.display = 'block';
+        previewCanvas.style.display = 'none';
+        cropRect = null;
+        originalImg.onload = () => {
+            // Dibujar original en un canvas oculto para obtener dimensiones
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = originalImg.naturalWidth;
+            tempCanvas.height = originalImg.naturalHeight;
+            tempCanvas.getContext('2d').drawImage(originalImg, 0, 0);
+            // Guardar bitmap
+            createImageBitmap(tempCanvas).then(bitmap => {
+                originalImageBitmap = bitmap;
+                applyPreprocessAndDraw();  // aplicar preprocesado inicial
+            });
+            statusDiv.innerHTML = '✅ Imagen cargada. Ajusta umbral/contraste y luego ejecuta OCR.';
+        };
+    });
+    
+    // --- Aplicar preprocesado (binarización + contraste) sobre la región recortada ---
+    function applyPreprocessAndDraw() {
+        if (!originalImageBitmap) return;
+        
+        // Obtener región de recorte (si existe)
+        let srcX = 0, srcY = 0, srcW = originalImageBitmap.width, srcH = originalImageBitmap.height;
+        if (cropRect && cropRect.w > 0 && cropRect.h > 0) {
+            srcX = cropRect.x * originalImageBitmap.width;
+            srcY = cropRect.y * originalImageBitmap.height;
+            srcW = cropRect.w * originalImageBitmap.width;
+            srcH = cropRect.h * originalImageBitmap.height;
+        }
+        
+        // Crear canvas temporal con la región
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = srcW;
+        tempCanvas.height = srcH;
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(originalImageBitmap, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
+        
+        // Ahora aplicar contraste y binarización
+        const imageData = tempCtx.getImageData(0, 0, srcW, srcH);
+        const data = imageData.data;
+        const contrast = parseFloat(contrastSlider.value);
+        const threshold = parseInt(thresholdSlider.value);
+        
+        // Aplicar contraste en escala de grises primero
+        for (let i = 0; i < data.length; i += 4) {
+            let r = data[i];
+            let g = data[i+1];
+            let b = data[i+2];
+            // luminancia
+            let gray = 0.2989 * r + 0.5870 * g + 0.1140 * b;
+            // aplicar contraste: gray = (gray - 128) * contrast + 128
+            let contrasted = (gray - 128) * contrast + 128;
+            contrasted = Math.min(255, Math.max(0, contrasted));
+            // binarización por umbral
+            let binary = contrasted >= threshold ? 255 : 0;
+            data[i] = binary;
+            data[i+1] = binary;
+            data[i+2] = binary;
+        }
+        tempCtx.putImageData(imageData, 0, 0);
+        
+        // Escalar la imagen procesada para que quepa en el canvas de previsualización (manteniendo aspecto)
+        const maxWidth = 500;
+        const maxHeight = 300;
+        let drawW = srcW, drawH = srcH;
+        if (drawW > maxWidth) { drawH = (drawH * maxWidth) / drawW; drawW = maxWidth; }
+        if (drawH > maxHeight) { drawW = (drawW * maxHeight) / drawH; drawH = maxHeight; }
+        processedCanvas.width = drawW;
+        processedCanvas.height = drawH;
+        ctxProcessed.drawImage(tempCanvas, 0, 0, srcW, srcH, 0, 0, drawW, drawH);
+        
+        // Guardar la imagen procesada completa para OCR (sin escalar, la original recortada)
+        window.currentProcessedBlob = null;
+        tempCanvas.toBlob(blob => {
+            window.currentProcessedBlob = blob;
+        }, 'image/png');
+    }
+    
+    // --- Eventos de preprocesado ---
+    function updateSlidersDisplay() {
+        thresholdVal.innerText = thresholdSlider.value;
+        contrastVal.innerText = contrastSlider.value;
+        applyPreprocessAndDraw();
+    }
+    thresholdSlider.addEventListener('input', updateSlidersDisplay);
+    contrastSlider.addEventListener('input', updateSlidersDisplay);
+    applyPreprocessBtn.addEventListener('click', () => {
+        applyPreprocessAndDraw();
+        statusDiv.innerHTML = '🔄 Preprocesado actualizado. Ejecuta OCR cuando quieras.';
+    });
+    
+    // --- Funcionalidad de recorte ---
+    function setupCropping() {
+        if (!originalImg.complete || !originalImg.naturalWidth) return;
+        isCropping = !isCropping;
+        if (isCropping) {
+            statusDiv.innerHTML = '✂️ Modo recorte: haz clic y arrastra sobre la imagen original para seleccionar zona.';
+            originalImg.style.cursor = 'crosshair';
+            originalImg.addEventListener('mousedown', onMouseDown);
+            originalImg.addEventListener('mousemove', onMouseMove);
+            originalImg.addEventListener('mouseup', onMouseUp);
+            // También para táctil
+            originalImg.addEventListener('touchstart', onTouchStart);
+            originalImg.addEventListener('touchmove', onTouchMove);
+            originalImg.addEventListener('touchend', onTouchEnd);
+        } else {
+            originalImg.style.cursor = 'default';
+            originalImg.removeEventListener('mousedown', onMouseDown);
+            originalImg.removeEventListener('mousemove', onMouseMove);
+            originalImg.removeEventListener('mouseup', onMouseUp);
+            originalImg.removeEventListener('touchstart', onTouchStart);
+            originalImg.removeEventListener('touchmove', onTouchMove);
+            originalImg.removeEventListener('touchend', onTouchEnd);
+        }
+    }
+    
+    function getRelativeCoords(e, rect) {
+        let clientX, clientY;
+        if (e.touches) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        let x = (clientX - rect.left) / rect.width;
+        let y = (clientY - rect.top) / rect.height;
+        x = Math.min(1, Math.max(0, x));
+        y = Math.min(1, Math.max(0, y));
+        return { x, y };
+    }
+    
+    function onMouseDown(e) {
+        const rect = originalImg.getBoundingClientRect();
+        const coords = getRelativeCoords(e, rect);
+        startCrop = { x: coords.x, y: coords.y };
+        cropRect = { x: startCrop.x, y: startCrop.y, w: 0, h: 0 };
+        drawCropOverlay();
+    }
+    function onMouseMove(e) {
+        if (!cropRect) return;
+        const rect = originalImg.getBoundingClientRect();
+        const coords = getRelativeCoords(e, rect);
+        cropRect.w = coords.x - startCrop.x;
+        cropRect.h = coords.y - startCrop.y;
+        if (cropRect.w < 0) { cropRect.x = coords.x; cropRect.w = -cropRect.w; }
+        if (cropRect.h < 0) { cropRect.y = coords.y; cropRect.h = -cropRect.h; }
+        drawCropOverlay();
+    }
+    function onMouseUp() {
+        if (cropRect && cropRect.w > 0.02 && cropRect.h > 0.02) {
+            isCropping = false; // salir modo recorte
+            statusDiv.innerHTML = '✅ Recorte guardado. Vuelve a aplicar preprocesado y ejecuta OCR.';
+            applyPreprocessAndDraw();
+        } else {
+            cropRect = null;
+        }
+        drawCropOverlay();
+        // desactivar eventos
+        originalImg.style.cursor = 'default';
+        originalImg.removeEventListener('mousedown', onMouseDown);
+        originalImg.removeEventListener('mousemove', onMouseMove);
+        originalImg.removeEventListener('mouseup', onMouseUp);
+        isCropping = false;
+    }
+    function onTouchStart(e) { e.preventDefault(); onMouseDown(e); }
+    function onTouchMove(e) { e.preventDefault(); onMouseMove(e); }
+    function onTouchEnd(e) { onMouseUp(); }
+    
+    function drawCropOverlay() {
+        if (!originalImg.complete) return;
+        if (!previewCanvas.style.display || previewCanvas.style.display === 'none') {
+            // dibujar en un canvas superpuesto? Para simplicidad, no implementamos overlay visual, pero el recorte funciona.
+        }
+    }
+    
+    cropBtn.addEventListener('click', () => {
+        if (!originalImageBitmap) { statusDiv.innerHTML = 'Primero carga una imagen.'; return; }
+        setupCropping();
+    });
+    resetCropBtn.addEventListener('click', () => {
+        cropRect = null;
+        applyPreprocessAndDraw();
+        statusDiv.innerHTML = 'Recorte eliminado, imagen completa.';
+    });
+    
+    // --- OCR con la imagen procesada ---
+    async function runOCR() {
+        if (!window.currentProcessedBlob) {
+            statusDiv.innerHTML = '⚠️ Primero aplica preprocesado (o carga imagen) para generar la imagen procesada.';
+            return;
+        }
+        statusDiv.innerHTML = '🔄 Iniciando OCR (Tesseract.js) - puede tardar hasta 10 segundos...';
+        try {
+            const worker = await Tesseract.createWorker('eng', 1, {
+                logger: m => console.log(m)
+            });
+            // Usar la imagen procesada que está en blob
+            const { data: { text } } = await worker.recognize(window.currentProcessedBlob);
+            await worker.terminate();
+            const recognized = text.trim();
+            rawTextarea.value = recognized;
+            statusDiv.innerHTML = '✅ OCR completado. Revisa el texto y presiona "Parsear".';
+            // Intento automático de parseo
+            const parsed = parseRepairLabel(recognized);
+            if (parsed) {
+                showParsedResult(parsed);
+                statusDiv.innerHTML = '🎉 Parseo automático exitoso.';
+            } else {
+                statusDiv.innerHTML = '⚠️ El texto no coincide con el formato. Edítalo manualmente y parsea.';
+            }
+        } catch (err) {
+            console.error(err);
+            statusDiv.innerHTML = `❌ Error OCR: ${err.message}`;
+        }
+    }
+    
+    ocrBtn.addEventListener('click', runOCR);
+    
+    // --- Función de parseo (misma que antes) ---
+    function parseRepairLabel(text) {
+        let cleaned = text.trim().replace(/\s+/g, '');
+        const regex = /^D(\d+)\.L(\d+)\.N(\d+)\.([A-Za-z]+)(\d+x\d+)\.([A-Za-z]+)$/i;
+        let match = cleaned.match(regex);
+        if (!match) {
+            const fallback = /D(\d+)\.L(\d+)\.N(\d+)\.([A-Za-z]+)(\d+x\d+)\.([A-Za-z]+)/i;
+            match = cleaned.match(fallback);
+        }
+        if (!match) return null;
+        const [, drop, level, repairNumber, repairType, measurements, phase] = match;
+        return { drop, level, repairNumber, repairType, measurements, phase };
+    }
+    
     function showParsedResult(data, errorMsg = null) {
         if (errorMsg || !data) {
-            parsedFeedback.innerHTML = `<span style="color:#c0392b;">❌ Error: ${errorMsg || 'No se pudo parsear el texto'}</span>`;
+            parsedFeedback.innerHTML = `<span style="color:#c0392b;">❌ ${errorMsg || 'Formato inválido'}</span>`;
             parsedFeedback.className = 'field-group error';
             return;
         }
@@ -197,106 +497,23 @@
         repairTypeInput.value = data.repairType;
         measurementsInput.value = data.measurements;
         phaseInput.value = data.phase;
-        parsedFeedback.innerHTML = `✅ Extracción exitosa: <strong>D${data.drop}.L${data.level}.N${data.repairNumber}.${data.repairType}${data.measurements}.${data.phase}</strong>`;
+        parsedFeedback.innerHTML = `✅ Éxito: <strong>D${data.drop}.L${data.level}.N${data.repairNumber}.${data.repairType}${data.measurements}.${data.phase}</strong>`;
         parsedFeedback.className = 'field-group success';
     }
-
-    // Función de parseo del formato exacto
-    function parseRepairLabel(text) {
-        // Limpiar espacios, saltos de línea, y asegurar mayúsculas en letras (pero fase puede ser minúscula)
-        let cleaned = text.trim().replace(/\s+/g, '');
-        // Expresión regular exacta: D(dígitos).L(dígitos).N(dígitos).(letras)(dígitos x dígitos).(letras minúsculas o mayúsculas)
-        const regex = /^D(\d+)\.L(\d+)\.N(\d+)\.([A-Za-z]+)(\d+x\d+)\.([A-Za-z]+)$/i;
-        const match = cleaned.match(regex);
-        if (!match) {
-            // Intento más permisivo: si el OCR agregó caracteres extraños, buscar patrón dentro
-            const fallbackRegex = /D(\d+)\.L(\d+)\.N(\d+)\.([A-Za-z]+)(\d+x\d+)\.([A-Za-z]+)/i;
-            const fallbackMatch = cleaned.match(fallbackRegex);
-            if (fallbackMatch) {
-                const [, drop, level, repairNumber, repairType, measurements, phase] = fallbackMatch;
-                return { drop, level, repairNumber, repairType, measurements, phase };
-            }
-            return null;
-        }
-        const [, drop, level, repairNumber, repairType, measurements, phase] = match;
-        return { drop, level, repairNumber, repairType, measurements, phase };
-    }
-
-    // Ejecutar OCR con Tesseract
-    async function runOCR(imageFile) {
-        if (!imageFile) {
-            statusDiv.innerHTML = '⚠️ Primero selecciona o toma una foto.';
-            return false;
-        }
-        statusDiv.innerHTML = '🔄 Procesando OCR... (puede tomar varios segundos)';
-        try {
-            // Usamos Tesseract con idioma inglés (entrenado para imprenta, pero puede reconocer manuscrito simple)
-            // Para mejorar manuscrito se podría usar 'eng+spa' o modelos específicos, pero el peso es mayor.
-            const worker = await Tesseract.createWorker('eng', 1, {
-                logger: m => console.log(m) // opcional para depuración
-            });
-            // Realizar reconocimiento desde el archivo
-            const { data: { text } } = await worker.recognize(imageFile);
-            await worker.terminate();
-            
-            const recognized = text.trim();
-            rawTextarea.value = recognized;
-            statusDiv.innerHTML = '✅ OCR completado. Revisa el texto reconocido y presiona "Parsear".';
-            
-            // Opcional: automáticamente intentar parsear si el texto tiene buena pinta
-            if (recognized.length > 5) {
-                const parsed = parseRepairLabel(recognized);
-                if (parsed) {
-                    showParsedResult(parsed);
-                    statusDiv.innerHTML = '🎯 Parseo automático exitoso. Campos rellenados.';
-                } else {
-                    statusDiv.innerHTML = '⚠️ El texto reconocido no coincide con el formato. Edítalo manualmente y parsea.';
-                }
-            }
-            return true;
-        } catch (error) {
-            console.error(error);
-            statusDiv.innerHTML = `❌ Error en OCR: ${error.message}`;
-            return false;
-        }
-    }
-
-    // Manejar botón OCR
-    ocrBtn.addEventListener('click', async () => {
-        clearFields();
-        if (!currentImageData && imageInput.files.length === 0) {
-            statusDiv.innerHTML = '📁 Por favor, selecciona una imagen primero.';
-            return;
-        }
-        const file = currentImageData || imageInput.files[0];
-        await runOCR(file);
-    });
-
-    // Botón parsear manual (usa el texto del textarea)
+    
     parseBtn.addEventListener('click', () => {
-        const rawText = rawTextarea.value;
-        if (!rawText.trim()) {
-            parsedFeedback.innerHTML = '<span style="color:#e67e22;">✏️ No hay texto para parsear. Ejecuta OCR o escribe manualmente.</span>';
-            parsedFeedback.className = 'field-group error';
+        const raw = rawTextarea.value;
+        if (!raw.trim()) {
+            showParsedResult(null, 'No hay texto para parsear');
             return;
         }
-        const parsed = parseRepairLabel(rawText);
-        if (parsed) {
-            showParsedResult(parsed);
-            statusDiv.innerHTML = '📌 Parseo manual exitoso.';
-        } else {
-            showParsedResult(null, 'Formato no válido. Debe ser algo como D13.L23.N2.RR450x200.s');
-        }
+        const parsed = parseRepairLabel(raw);
+        if (parsed) showParsedResult(parsed);
+        else showParsedResult(null, 'Formato incorrecto. Ejemplo: D13.L23.N2.RR450x200.s');
     });
-
-    // Pequeña ayuda: Si el usuario pega un texto en el área, intentar parseo automático al salir (opcional)
-    rawTextarea.addEventListener('blur', () => {
-        const text = rawTextarea.value;
-        if (text.trim()) {
-            const parsed = parseRepairLabel(text);
-            if (parsed) showParsedResult(parsed);
-        }
-    });
+    
+    // inicializar valores por defecto
+    updateSlidersDisplay();
 </script>
 </body>
 </html>
